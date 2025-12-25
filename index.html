@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Layali POS — Snack Layali (Dakhla)</title>
+  <meta name="description" content="POS web simple pour Snack Layali : menu, caisse, historique et dashboard KPI."/>
+  <style>
+    :root {
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --muted:#5b6472;
+      --text:#0f172a;
+      --accent:#ff9f1c;
+      --ok:#14b8a6;
+      --danger:#fb7185;
+      --border: rgba(15,23,42,.10);
+      --shadow: 0 10px 24px rgba(15,23,42,.10);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1100px 700px at 70% -20%, rgba(255,159,28,.18), transparent 55%),
+                  radial-gradient(1000px 650px at 10% 110%, rgba(20,184,166,.12), transparent 60%),
+                  var(--bg);
+color: var(--text);
+    }
+    a { color: inherit; }
+    .topbar {
+      position: sticky; top:0; z-index: 30;
+      backdrop-filter: blur(10px);
+      background: rgba(246,247,251,.78);
+border-bottom: 1px solid var(--border);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px 18px; }
+    .brand {
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo {
+      width: 42px; height: 42px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255,159,28,.95), rgba(255,159,28,.25));
+      display:grid; place-items:center; font-weight: 900; color:#1a1a1a;
+      box-shadow: var(--shadow);
+    }
+    .title {
+      line-height:1.1;
+    }
+    .title b { font-size: 15px; }
+    .title small { display:block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .nav {
+      display:flex; gap: 8px; flex-wrap:wrap;
+      margin-top: 10px;
+    }
+    .tab {
+      padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 999px; cursor:pointer; user-select:none;
+      color: var(--muted); transition: .15s ease;
+      background: rgba(15,23,42,.03);
+    }
+    .tab.active {
+      color: #111; background: var(--accent);
+      border-color: rgba(255,159,28,.6);
+      font-weight: 700;
+    }
+    .grid {
+      display:grid; grid-template-columns: 1.25fr .75fr; gap: 14px;
+    }
+    @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: rgba(255,255,255,.92);
+border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd {
+      padding: 14px 16px;
+      display:flex; align-items:center; justify-content:space-between;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+    }
+    .card .hd h2 {
+      margin:0; font-size: 14px;
+      letter-spacing: .2px;
+    }
+    .card .hd .hint { color: var(--muted); font-size: 12px; }
+    .card .bd { padding: 14px 16px; }
+    .controls {
+      display:flex; gap: 10px; flex-wrap:wrap;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: rgba(15,23,42,.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    textarea { min-height: 76px; resize: vertical; }
+    .btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: .15s ease;
+      display:inline-flex; align-items:center; gap: 8px;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.primary {
+      background: var(--accent);
+      color: #111;
+      font-weight: 800;
+      border-color: rgba(255,159,28,.55);
+    }
+    .btn.danger {
+      background: rgba(251,113,133,.18);
+      border-color: rgba(251,113,133,.4);
+    }
+    .btn.ok {
+      background: rgba(45,212,191,.18);
+      border-color: rgba(45,212,191,.45);
+    }
+    .list {
+      display:grid; gap: 10px;
+    }
+    .item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 12px 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(15,23,42,.03);
+      gap: 10px;
+    }
+    .item .meta {
+      display:flex; flex-direction:column; gap: 2px;
+    }
+    .item .name { font-weight: 800; font-size: 13px; }
+    .item .cat { color: var(--muted); font-size: 12px; }
+    .item .price { font-weight: 800; }
+    .qty {
+      display:flex; align-items:center; gap: 8px;
+    }
+    .pill {
+      padding: 6px 10px; border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted); font-size: 12px;
+    }
+    .totals {
+      display:grid; gap: 10px;
+      margin-top: 10px;
+    }
+    .totals .row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(15,23,42,.03);
+    }
+    .big {
+      font-size: 20px; font-weight: 900;
+    }
+    .muted { color: var(--muted); }
+    .split {
+      display:grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    @media (max-width: 620px) { .split { grid-template-columns: 1fr; } }
+    .kpi {
+      display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    }
+    @media (max-width: 760px) { .kpi { grid-template-columns: 1fr; } }
+    .kpi .box {
+      padding: 12px 12px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(15,23,42,.03);
+    }
+    .kpi .box b { display:block; font-size: 18px; }
+    .kpi .box span { color: var(--muted); font-size: 12px; }
+    canvas {
+      width: 100%; height: 220px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+    .footer {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 18px;
+      text-align:center;
+    }
+    .badge {
+      display:inline-flex; align-items:center; gap: 6px;
+      padding: 6px 10px; border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,.03);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="wrap">
+      <div class="brand">
+        <div class="logo">L</div>
+        <div class="title">
+          <b>Layali POS</b>
+          <small>Snack Layali — Dakhla • Menu + Caisse + Historique + KPI</small>
+        </div>
+      </div>
+
+      <div class="nav" id="navTabs">
+        <div class="tab active" data-tab="menu">Menu</div>
+        <div class="tab" data-tab="caisse">Caisse</div>
+        <div class="tab" data-tab="historique">Historique</div>
+        <div class="tab" data-tab="dashboard">Dashboard</div>
+        <div class="tab" data-tab="settings">Paramètres</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- MENU TAB -->
+    <div id="tab-menu" class="tabPage">
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <h2>Menu (produits)</h2>
+            <span class="hint">Recherche + filtre catégorie</span>
+          </div>
+          <div class="bd">
+            <div class="split">
+              <div>
+                <input id="search" placeholder="Rechercher un produit…"/>
+              </div>
+              <div>
+                <select id="catFilter"></select>
+              </div>
+            </div>
+            <div style="height:10px"></div>
+            <div class="list" id="menuList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <h2>Panier rapide</h2>
+            <span class="hint"><span class="badge">Auto-save</span></span>
+          </div>
+          <div class="bd">
+            <div id="cartMini" class="list"></div>
+            <div class="totals">
+              <div class="row">
+                <span class="muted">Total</span>
+                <span class="big" id="cartTotalMini">0 MAD</span>
+              </div>
+              <button class="btn primary" id="goCaisseBtn">Aller à la caisse</button>
+              <button class="btn danger" id="clearCartBtn">Vider panier</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAISSE TAB -->
+    <div id="tab-caisse" class="tabPage" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <h2>Caisse (commande)</h2>
+            <span class="hint">Quantités + note</span>
+          </div>
+          <div class="bd">
+            <div class="split">
+              <div>
+                <label class="muted" style="font-size:12px">Caissier</label>
+                <input id="cashier" placeholder="Ex: Amina"/>
+              </div>
+              <div>
+                <label class="muted" style="font-size:12px">Paiement</label>
+                <select id="payment">
+                  <option>Cash</option>
+                  <option>Carte</option>
+                  <option>Mixte</option>
+                  <option>Autre</option>
+                </select>
+              </div>
+            </div>
+            <div style="height:10px"></div>
+            <label class="muted" style="font-size:12px">Note (optionnel)</label>
+            <textarea id="note" placeholder="Ex: sans oignon, sauce à part…"></textarea>
+
+            <div style="height:10px"></div>
+            <div class="list" id="cartFull"></div>
+
+            <div class="totals">
+              <div class="row">
+                <span class="muted">Total</span>
+                <span class="big" id="cartTotalFull">0 MAD</span>
+              </div>
+              <button class="btn primary" id="checkoutBtn">Valider la commande</button>
+              <button class="btn ok" id="exportJsonBtn">Exporter JSON</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <h2>Aide</h2>
+            <span class="hint">2 minutes</span>
+          </div>
+          <div class="bd">
+            <div class="item">
+              <div class="meta">
+                <div class="name">1) Ajouter des produits</div>
+                <div class="cat">Depuis l’onglet Menu, clique “Ajouter”.</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="meta">
+                <div class="name">2) Ajuster quantité</div>
+                <div class="cat">Utilise + / − dans la caisse.</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="meta">
+                <div class="name">3) Valider</div>
+                <div class="cat">La commande est enregistrée dans Historique + Dashboard.</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="meta">
+                <div class="name">Données</div>
+                <div class="cat">Stockées localement (LocalStorage). Export JSON possible.</div>
+              </div>
+            </div>
+            <div style="height:12px"></div>
+            <button class="btn" id="seedDemoBtn">Ajouter 2 commandes demo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORIQUE TAB -->
+    <div id="tab-historique" class="tabPage" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <h2>Historique des ventes</h2>
+          <span class="hint"><button class="btn danger" id="clearOrdersBtn">Effacer historique</button></span>
+        </div>
+        <div class="bd">
+          <div class="split">
+            <div><input id="histSearch" placeholder="Rechercher (ID, produit, caissier)…"/></div>
+            <div>
+              <select id="histRange">
+                <option value="all">Toutes</option>
+                <option value="today">Aujourd’hui</option>
+                <option value="7">7 jours</option>
+                <option value="30">30 jours</option>
+              </select>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <div class="list" id="ordersList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div id="tab-dashboard" class="tabPage" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <h2>KPI</h2>
+            <span class="hint">Calculés à partir de l’historique</span>
+          </div>
+          <div class="bd">
+            <div class="kpi">
+              <div class="box">
+                <b id="kpiRevenue">0</b>
+                <span>Chiffre d’affaires total (MAD)</span>
+              </div>
+              <div class="box">
+                <b id="kpiOrders">0</b>
+                <span>Nombre de commandes</span>
+              </div>
+              <div class="box">
+                <b id="kpiAvg">0</b>
+                <span>Panier moyen (MAD)</span>
+              </div>
+            </div>
+            <div style="height:12px"></div>
+            <div class="split">
+              <div>
+                <div class="muted" style="font-size:12px; margin-bottom:6px">CA sur 7 jours</div>
+                <canvas id="chart7"></canvas>
+              </div>
+              <div>
+                <div class="muted" style="font-size:12px; margin-bottom:6px">Top produits (CA)</div>
+                <div class="list" id="topProducts"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <h2>Exports</h2>
+            <span class="hint">Pour rapport / preuve</span>
+          </div>
+          <div class="bd">
+            <div class="item">
+              <div class="meta">
+                <div class="name">Exporter toutes les commandes</div>
+                <div class="cat">JSON (.txt) à coller dans un rapport</div>
+              </div>
+              <button class="btn ok" id="exportAllBtn">Exporter</button>
+            </div>
+            <div class="item">
+              <div class="meta">
+                <div class="name">Exporter CSV (table)</div>
+                <div class="cat">Compatible Excel / Google Sheets</div>
+              </div>
+              <button class="btn ok" id="exportCsvBtn">CSV</button>
+            </div>
+            <div class="item">
+              <div class="meta">
+                <div class="name">Réinitialiser données demo</div>
+                <div class="cat">Efface panier + historique</div>
+              </div>
+              <button class="btn danger" id="resetBtn">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="tab-settings" class="tabPage" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <h2>Paramètres</h2>
+          <span class="hint">Remplacer infos réelles plus tard</span>
+        </div>
+        <div class="bd">
+          <div class="split">
+            <div>
+              <label class="muted" style="font-size:12px">Nom du snack</label>
+              <input id="setName" placeholder="Snack Layali"/>
+            </div>
+            <div>
+              <label class="muted" style="font-size:12px">Ville</label>
+              <input id="setCity" placeholder="Dakhla"/>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <div class="split">
+            <div>
+              <label class="muted" style="font-size:12px">Téléphone</label>
+              <input id="setPhone" placeholder="+212 6XX XXX XXX"/>
+            </div>
+            <div>
+              <label class="muted" style="font-size:12px">WhatsApp (wa.me)</label>
+              <input id="setWhats" placeholder="https://wa.me/2126XXXXXXXX"/>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <button class="btn primary" id="saveSettingsBtn">Enregistrer</button>
+        </div>
+      </div>
+
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="hd">
+          <h2>Menu (data)</h2>
+          <span class="hint">Menu actuel importé depuis la photo</span>
+        </div>
+        <div class="bd">
+          <div class="muted" style="font-size:12px; margin-bottom:8px">
+            Si tu veux modifier le menu: ouvre le code et édite l’objet <b>MENU_DATA</b> (ou demande-moi de le mettre à jour).
+          </div>
+          <pre style="white-space: pre-wrap; background: rgba(15,23,42,.06); padding: 12px; border-radius: 14px; border: 1px solid var(--border); margin:0" id="menuDump"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Layali POS — prototype académique • données locales • Snack Layali (Dakhla)</div>
+  </div>
+
+<script>
+  // ---------------- DATA ----------------
+  const MENU_DATA = [{"name": "Petite Salade variée", "category": "Salades", "price": 15.0}, {"name": "Grande Salade variée", "category": "Salades", "price": 20.0}, {"name": "Sandwich Normal", "category": "Sandwiches", "price": 12.0}, {"name": "Sandwich viande hachée", "category": "Sandwiches", "price": 18.0}, {"name": "Sandwich dinde", "category": "Sandwiches", "price": 20.0}, {"name": "Sandwich saucisse", "category": "Sandwiches", "price": 20.0}, {"name": "Sandwich foie", "category": "Sandwiches", "price": 22.0}, {"name": "Sandwich mix", "category": "Sandwiches", "price": 22.0}, {"name": "Sandwich Escalope", "category": "Sandwiches", "price": 26.0}, {"name": "Sandwich Nuggets", "category": "Sandwiches", "price": 26.0}, {"name": "Sandwich Fruits de Mer", "category": "Sandwiches", "price": 28.0}, {"name": "Panini thon", "category": "Paninis", "price": 18.0}, {"name": "Panini viande hachée", "category": "Paninis", "price": 23.0}, {"name": "Panini saucisse", "category": "Paninis", "price": 23.0}, {"name": "Panini dinde", "category": "Paninis", "price": 22.0}, {"name": "Panini mix", "category": "Paninis", "price": 24.0}, {"name": "Panini foie", "category": "Paninis", "price": 24.0}, {"name": "Panini fruits de mer", "category": "Paninis", "price": 30.0}, {"name": "Panini nugget", "category": "Paninis", "price": 28.0}, {"name": "Panini escalope", "category": "Paninis", "price": 28.0}, {"name": "Tacos dinde", "category": "Tacos", "price": 30.0}, {"name": "Tacos viande hachée", "category": "Tacos", "price": 35.0}, {"name": "Tacos mix", "category": "Tacos", "price": 35.0}, {"name": "Tacos foie", "category": "Tacos", "price": 40.0}, {"name": "Tacos fruits de mer", "category": "Tacos", "price": 40.0}, {"name": "Tacos nugget", "category": "Tacos", "price": 35.0}, {"name": "Tacos escalope", "category": "Tacos", "price": 35.0}, {"name": "Tacos Dinde XL", "category": "Tacos XL", "price": 45.0}, {"name": "Tacos Viande Hachée XL", "category": "Tacos XL", "price": 50.0}, {"name": "Tacos Mix XL", "category": "Tacos XL", "price": 50.0}, {"name": "Burger", "category": "Burgers", "price": 25.0}, {"name": "Chicken burger", "category": "Burgers", "price": 30.0}, {"name": "Plat Dinde", "category": "Plats", "price": 30.0}, {"name": "Plat Foie", "category": "Plats", "price": 40.0}, {"name": "Plat Viande hachée", "category": "Plats", "price": 35.0}, {"name": "Plat Nugget", "category": "Plats", "price": 35.0}, {"name": "Plat Mix", "category": "Plats", "price": 40.0}, {"name": "Plat Escalope", "category": "Plats", "price": 35.0}, {"name": "Eau minérale", "category": "Boissons", "price": 8.0}, {"name": "Soda", "category": "Boissons", "price": 6.0}, {"name": "Sauce séparée", "category": "Suppléments", "price": 2.0}, {"name": "Supplément frites", "category": "Suppléments", "price": 8.0}, {"name": "Jus Orange", "category": "Jus", "price": 15.0}, {"name": "Jus banane", "category": "Jus", "price": 12.0}, {"name": "Jus Citron", "category": "Jus", "price": 8.0}, {"name": "Jus Avocat", "category": "Jus", "price": 15.0}, {"name": "Jus Mango", "category": "Jus", "price": 19.0}, {"name": "Jus Pomme", "category": "Jus", "price": 12.0}, {"name": "Jus Fraise", "category": "Jus", "price": 19.0}, {"name": "Jus Panaché Orange", "category": "Jus", "price": 18.0}, {"name": "Jus Panaché Lait", "category": "Jus", "price": 14.0}];
+  const LS = {
+    CART: "layali_cart_v1",
+    ORDERS: "layali_orders_v1",
+    SETTINGS: "layali_settings_v1"
+  };
+
+  // ---------------- STATE ----------------
+  let cart = JSON.parse(localStorage.getItem(LS.CART) || "[]");
+  let orders = JSON.parse(localStorage.getItem(LS.ORDERS) || "[]");
+  let settings = JSON.parse(localStorage.getItem(LS.SETTINGS) || JSON.stringify({
+    name: "Snack Layali",
+    city: "Dakhla",
+    phone: "+212 6XX XXX XXX",
+    whatsapp: "https://wa.me/2126XXXXXXXX"
+  }));
+
+  // ---------------- UTILS ----------------
+  const fmt = (n) => (Math.round((n + Number.EPSILON)*100)/100).toFixed(0) + " MAD";
+  const todayISO = () => new Date().toISOString().slice(0,10);
+  const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+
+  function save() {
+    localStorage.setItem(LS.CART, JSON.stringify(cart));
+    localStorage.setItem(LS.ORDERS, JSON.stringify(orders));
+    localStorage.setItem(LS.SETTINGS, JSON.stringify(settings));
+  }
+
+  function cartTotal() {
+    return cart.reduce((s, it)=> s + it.price*it.qty, 0);
+  }
+
+  function addToCart(product) {
+    const found = cart.find(x => x.name === product.name);
+    if(found) found.qty += 1;
+    else cart.push({...product, qty: 1});
+    save();
+    renderAll();
+  }
+
+  function setQty(name, delta) {
+    const it = cart.find(x=>x.name===name);
+    if(!it) return;
+    it.qty += delta;
+    if(it.qty <= 0) cart = cart.filter(x=>x.name!==name);
+    save();
+    renderAll();
+  }
+
+  function clearCart() {
+    cart = [];
+    save();
+    renderAll();
+  }
+
+  function newOrder({cashier, payment, note}) {
+    const total = cartTotal();
+    if(cart.length === 0) return alert("Panier vide.");
+    const id = `${todayISO().replaceAll("-","")}-${rand(1000,9999)}`;
+    const dt = new Date().toISOString();
+    const order = {
+      id, datetime: dt, date: dt.slice(0,10),
+      cashier: cashier || "—",
+      payment: payment || "Cash",
+      note: note || "",
+      items: cart.map(x => ({name:x.name, category:x.category, price:x.price, qty:x.qty})),
+      total
+    };
+    orders.unshift(order);
+    cart = [];
+    save();
+    renderAll();
+    alert("Commande enregistrée ✅");
+  }
+
+  function withinRange(orderDate, range) {
+    if(range === "all") return true;
+    const d0 = new Date(orderDate);
+    const now = new Date();
+    const diffDays = Math.floor((now - d0) / (1000*60*60*24));
+    if(range === "today") return diffDays === 0;
+    const n = parseInt(range,10);
+    return diffDays >= 0 && diffDays < n;
+  }
+
+  // ---------------- NAV ----------------
+  function showTab(key) {
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===key));
+    document.querySelectorAll(".tabPage").forEach(p=>p.style.display="none");
+    document.getElementById("tab-"+key).style.display="block";
+  }
+  document.getElementById("navTabs").addEventListener("click", (e)=>{
+    const tab = e.target.closest(".tab");
+    if(!tab) return;
+    showTab(tab.dataset.tab);
+  });
+
+  // ---------------- RENDER: MENU ----------------
+  function categories() {
+    const set = new Set(MENU_DATA.map(x=>x.category));
+    return ["Toutes", ...Array.from(set).sort((a,b)=>a.localeCompare(b))];
+  }
+
+  function renderMenu() {
+    const q = (document.getElementById("search").value || "").toLowerCase().trim();
+    const cat = document.getElementById("catFilter").value || "Toutes";
+
+    const list = document.getElementById("menuList");
+    list.innerHTML = "";
+
+    const filtered = MENU_DATA
+      .filter(x => (cat==="Toutes" ? true : x.category===cat))
+      .filter(x => !q ? true : (x.name.toLowerCase().includes(q) || x.category.toLowerCase().includes(q)))
+      .sort((a,b)=> a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+
+    filtered.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "item";
+      row.innerHTML = `
+        <div class="meta">
+          <div class="name">${p.name}</div>
+          <div class="cat">${p.category}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <div class="price">${fmt(p.price)}</div>
+          <button class="btn primary">Ajouter</button>
+        </div>
+      `;
+      row.querySelector("button").addEventListener("click", ()=> addToCart(p));
+      list.appendChild(row);
+    });
+
+    if(filtered.length === 0) {
+      list.innerHTML = `<div class="muted">Aucun produit trouvé.</div>`;
+    }
+  }
+
+  function renderCartMini() {
+    const el = document.getElementById("cartMini");
+    el.innerHTML = "";
+    if(cart.length===0) {
+      el.innerHTML = `<div class="muted">Panier vide. Ajoute des produits depuis le menu.</div>`;
+    } else {
+      cart.slice(0,6).forEach(it => {
+        const row = document.createElement("div");
+        row.className = "item";
+        row.innerHTML = `
+          <div class="meta">
+            <div class="name">${it.name}</div>
+            <div class="cat">${it.category} • x${it.qty}</div>
+          </div>
+          <div class="price">${fmt(it.price*it.qty)}</div>
+        `;
+        el.appendChild(row);
+      });
+      if(cart.length>6) {
+        const more = document.createElement("div");
+        more.className = "muted";
+        more.textContent = `+${cart.length-6} autres…`;
+        el.appendChild(more);
+      }
+    }
+    document.getElementById("cartTotalMini").textContent = fmt(cartTotal());
+  }
+
+  // ---------------- RENDER: CAISSE ----------------
+  function renderCartFull() {
+    const el = document.getElementById("cartFull");
+    el.innerHTML = "";
+    if(cart.length===0) {
+      el.innerHTML = `<div class="muted">Panier vide. Va dans Menu pour ajouter des produits.</div>`;
+    } else {
+      cart.forEach(it => {
+        const row = document.createElement("div");
+        row.className = "item";
+        row.innerHTML = `
+          <div class="meta">
+            <div class="name">${it.name}</div>
+            <div class="cat">${it.category} • ${fmt(it.price)}</div>
+          </div>
+          <div class="qty">
+            <button class="btn" aria-label="moins">−</button>
+            <span class="pill">x${it.qty}</span>
+            <button class="btn" aria-label="plus">+</button>
+            <span class="price">${fmt(it.price*it.qty)}</span>
+          </div>
+        `;
+        const [minus, plus] = row.querySelectorAll("button");
+        minus.addEventListener("click", ()=> setQty(it.name, -1));
+        plus.addEventListener("click", ()=> setQty(it.name, +1));
+        el.appendChild(row);
+      });
+    }
+    document.getElementById("cartTotalFull").textContent = fmt(cartTotal());
+  }
+
+  // ---------------- RENDER: HISTORIQUE ----------------
+  function renderOrders() {
+    const q = (document.getElementById("histSearch").value || "").toLowerCase().trim();
+    const range = document.getElementById("histRange").value;
+
+    const list = document.getElementById("ordersList");
+    list.innerHTML = "";
+
+    const filtered = orders.filter(o => withinRange(o.date, range))
+      .filter(o => {
+        if(!q) return true;
+        const hay = [
+          o.id, o.date, o.cashier, o.payment, o.note,
+          ...o.items.map(it => it.name)
+        ].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+
+    if(filtered.length===0) {
+      list.innerHTML = `<div class="muted">Aucune commande.</div>`;
+      return;
+    }
+
+    filtered.forEach(o => {
+      const row = document.createElement("div");
+      row.className = "item";
+      const items = o.items.map(it => `${it.qty}× ${it.name}`).join(" • ");
+      row.innerHTML = `
+        <div class="meta">
+          <div class="name">${o.id} — ${fmt(o.total)}</div>
+          <div class="cat">${o.date} • ${o.cashier} • ${o.payment}${o.note ? " • "+o.note : ""}</div>
+          <div class="cat">${items}</div>
+        </div>
+        <button class="btn danger">Supprimer</button>
+      `;
+      row.querySelector("button").addEventListener("click", ()=>{
+        if(!confirm("Supprimer cette commande ?")) return;
+        orders = orders.filter(x=>x.id!==o.id);
+        save();
+        renderAll();
+      });
+      list.appendChild(row);
+    });
+  }
+
+  // ---------------- DASHBOARD ----------------
+  function renderDashboard() {
+    const revenue = orders.reduce((s,o)=>s+o.total,0);
+    const nb = orders.length;
+    const avg = nb ? (revenue/nb) : 0;
+
+    document.getElementById("kpiRevenue").textContent = fmt(revenue).replace(" MAD","");
+    document.getElementById("kpiOrders").textContent = nb;
+    document.getElementById("kpiAvg").textContent = fmt(avg).replace(" MAD","");
+
+    // Last 7 days revenue
+    const days = [...Array(7)].map((_,i)=> {
+      const d = new Date(); d.setDate(d.getDate()-(6-i));
+      return d.toISOString().slice(0,10);
+    });
+    const daily = days.map(d => orders.filter(o=>o.date===d).reduce((s,o)=>s+o.total,0));
+
+    drawBarChart(document.getElementById("chart7"), days.map(d=>d.slice(5)), daily);
+
+    // Top products
+    const m = new Map();
+    orders.forEach(o => o.items.forEach(it => {
+      const key = it.name;
+      m.set(key, (m.get(key)||0) + it.price*it.qty);
+    }));
+    const top = Array.from(m.entries()).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+    const el = document.getElementById("topProducts");
+    el.innerHTML = "";
+    if(top.length===0) {
+      el.innerHTML = `<div class="muted">Pas encore de ventes.</div>`;
+    } else {
+      top.forEach(([name, ca]) => {
+        const row = document.createElement("div");
+        row.className = "item";
+        row.innerHTML = `
+          <div class="meta">
+            <div class="name">${name}</div>
+            <div class="cat">CA cumulé</div>
+          </div>
+          <div class="price">${fmt(ca)}</div>
+        `;
+        el.appendChild(row);
+      });
+    }
+  }
+
+  function drawBarChart(canvas, labels, values) {
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width = canvas.clientWidth * devicePixelRatio;
+    const h = canvas.height = canvas.clientHeight * devicePixelRatio;
+
+    ctx.clearRect(0,0,w,h);
+
+    const pad = 18*devicePixelRatio;
+    const chartW = w - pad*2;
+    const chartH = h - pad*2 - 18*devicePixelRatio;
+
+    const maxV = Math.max(1, ...values);
+    const barW = chartW / values.length;
+
+    // axes
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "rgba(15,23,42,.18)";
+    ctx.lineWidth = 1*devicePixelRatio;
+    ctx.beginPath();
+    ctx.moveTo(pad, pad);
+    ctx.lineTo(pad, pad+chartH);
+    ctx.lineTo(pad+chartW, pad+chartH);
+    ctx.stroke();
+
+    // bars
+    values.forEach((v,i)=>{
+      const x = pad + i*barW + barW*0.15;
+      const bw = barW*0.7;
+      const bh = (v/maxV) * (chartH*0.92);
+      const y = pad + chartH - bh;
+
+      // gradient
+      const g = ctx.createLinearGradient(0,y,0,y+bh);
+      g.addColorStop(0, "rgba(255,159,28,.95)");
+      g.addColorStop(1, "rgba(255,159,28,.25)");
+      ctx.fillStyle = g;
+      roundRect(ctx, x, y, bw, bh, 10*devicePixelRatio);
+      ctx.fill();
+
+      // label
+      ctx.fillStyle = "rgba(15,23,42,.70)";
+      ctx.font = `${10*devicePixelRatio}px ui-sans-serif, system-ui`;
+      ctx.textAlign = "center";
+      ctx.fillText(labels[i], x + bw/2, pad + chartH + 14*devicePixelRatio);
+    });
+  }
+
+  function roundRect(ctx,x,y,w,h,r) {
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y, x+w,y+h, rr);
+    ctx.arcTo(x+w,y+h, x,y+h, rr);
+    ctx.arcTo(x,y+h, x,y, rr);
+    ctx.arcTo(x,y, x+w,y, rr);
+    ctx.closePath();
+  }
+
+  // ---------------- SETTINGS ----------------
+  function renderSettings() {
+    document.getElementById("setName").value = settings.name || "";
+    document.getElementById("setCity").value = settings.city || "";
+    document.getElementById("setPhone").value = settings.phone || "";
+    document.getElementById("setWhats").value = settings.whatsapp || "";
+    document.getElementById("menuDump").textContent = JSON.stringify(MENU_DATA, null, 2);
+  }
+
+  // ---------------- WIRES ----------------
+  document.getElementById("search").addEventListener("input", renderMenu);
+  document.getElementById("catFilter").addEventListener("change", renderMenu);
+  document.getElementById("histSearch").addEventListener("input", renderOrders);
+  document.getElementById("histRange").addEventListener("change", renderOrders);
+
+  document.getElementById("goCaisseBtn").addEventListener("click", ()=> showTab("caisse"));
+  document.getElementById("clearCartBtn").addEventListener("click", ()=> {
+    if(!confirm("Vider le panier ?")) return;
+    clearCart();
+  });
+
+  document.getElementById("checkoutBtn").addEventListener("click", ()=> {
+    const cashier = document.getElementById("cashier").value.trim();
+    const payment = document.getElementById("payment").value;
+    const note = document.getElementById("note").value.trim();
+    newOrder({cashier, payment, note});
+  });
+
+  document.getElementById("exportJsonBtn").addEventListener("click", ()=> {
+    const payload = {
+      date: new Date().toISOString(),
+      cashier: document.getElementById("cashier").value.trim(),
+      payment: document.getElementById("payment").value,
+      note: document.getElementById("note").value.trim(),
+      cart,
+      total: cartTotal()
+    };
+    download("layali_export_cart.json", JSON.stringify(payload, null, 2));
+  });
+
+  document.getElementById("exportAllBtn").addEventListener("click", ()=> {
+    download("layali_orders.json", JSON.stringify(orders, null, 2));
+  });
+
+  document.getElementById("exportCsvBtn").addEventListener("click", ()=> {
+    const rows = [];
+    rows.push(["id","date","cashier","payment","product","category","qty","unit_price","line_total","order_total","note"].join(","));
+    orders.forEach(o => {
+      o.items.forEach(it => {
+        rows.push([
+          esc(o.id), esc(o.date), esc(o.cashier), esc(o.payment),
+          esc(it.name), esc(it.category), it.qty, it.price, it.qty*it.price, o.total, esc(o.note||"")
+        ].join(","));
+      });
+    });
+    download("layali_orders.csv", rows.join("\n"));
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", ()=> {
+    if(!confirm("Reset tout (panier + historique) ?")) return;
+    cart = []; orders = [];
+    save(); renderAll();
+  });
+
+  document.getElementById("clearOrdersBtn").addEventListener("click", ()=> {
+    if(!confirm("Effacer tout l'historique ?")) return;
+    orders = [];
+    save(); renderAll();
+  });
+
+  document.getElementById("saveSettingsBtn").addEventListener("click", ()=> {
+    settings = {
+      name: document.getElementById("setName").value.trim() || "Snack Layali",
+      city: document.getElementById("setCity").value.trim() || "Dakhla",
+      phone: document.getElementById("setPhone").value.trim() || "+212 6XX XXX XXX",
+      whatsapp: document.getElementById("setWhats").value.trim() || "https://wa.me/2126XXXXXXXX"
+    };
+    save();
+    alert("Paramètres enregistrés ✅");
+  });
+
+  document.getElementById("seedDemoBtn").addEventListener("click", ()=> {
+    const pick = (name)=> MENU_DATA.find(x=>x.name===name);
+    const now = new Date();
+    const d1 = new Date(now); d1.setDate(now.getDate()-1);
+    const mk = (d, items, total)=>({
+      id: d.toISOString().slice(0,10).replaceAll("-","") + "-" + rand(1000,9999),
+      datetime: d.toISOString(),
+      date: d.toISOString().slice(0,10),
+      cashier: "Demo",
+      payment: "Cash",
+      note: "",
+      items,
+      total
+    });
+    const o1Items = [
+      {name:"Tacos viande hachée", category:"Tacos", price:35, qty:1},
+      {name:"Frites", category:"Sides", price:10, qty:1},
+      {name:"Soda", category:"Boissons", price:6, qty:1},
+    ];
+    const o2Items = [
+      {name:"Panini mix", category:"Paninis", price:24, qty:1},
+      {name:"Jus Mango", category:"Jus", price:19, qty:1},
+    ];
+    orders.unshift(mk(d1, o1Items, o1Items.reduce((s,it)=>s+it.price*it.qty,0)));
+    orders.unshift(mk(now, o2Items, o2Items.reduce((s,it)=>s+it.price*it.qty,0)));
+    save(); renderAll();
+    alert("2 commandes demo ajoutées ✅");
+  });
+
+  function download(filename, text) {
+    const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 800);
+  }
+  function esc(s) {
+    const t = String(s ?? "");
+    if(t.includes(",") || t.includes("\"") || t.includes("\n")) {
+      return '"' + t.replaceAll('"','""') + '"';
+    }
+    return t;
+  }
+
+  // ---------------- INIT ----------------
+  (function init(){
+    const cf = document.getElementById("catFilter");
+    cf.innerHTML = categories().map(c=>`<option>${c}</option>`).join("");
+    // load last cashier if any
+    document.getElementById("cashier").value = (settings.lastCashier || "");
+    renderSettings();
+    renderAll();
+  })();
+
+  function renderAll(){
+    renderMenu();
+    renderCartMini();
+    renderCartFull();
+    renderOrders();
+    renderDashboard();
+    // persist last cashier
+    settings.lastCashier = document.getElementById("cashier").value.trim();
+    localStorage.setItem(LS.SETTINGS, JSON.stringify(settings));
+  }
+</script>
+</body>
+</html>
